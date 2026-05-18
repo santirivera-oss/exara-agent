@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 import time
+from asyncio import Future
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, AsyncIterator, Awaitable, Callable, Literal
@@ -76,7 +77,7 @@ class Agent:
         self.processes = ProcessManager()
         # confirmation_id → Future[bool]. Populated by the web flow when a CONFIRM
         # decision is hit; resolved externally by POST /sessions/{sid}/confirm/{cid}.
-        self.pending_confirms: dict[str, "asyncio.Future[bool]"] = {}
+        self.pending_confirms: dict[str, Future[bool]] = {}
         # MCP servers and the tools they expose are loaded in init() and live
         # until shutdown(). Failures in one server don't bring down others.
         self.mcp = MCPManager()
