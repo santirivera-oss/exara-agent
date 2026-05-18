@@ -1,0 +1,88 @@
+agent:
+  name: "ai-agent"
+  max_steps: 25
+  temperature: 0.2
+  stream: true
+  max_tokens: 4000   # cap per response — lower = less credit held by OpenRouter
+
+model:
+  provider: ollama
+  ollama:
+    base_url: http://localhost:11434
+    model: qwen2.5:7b-instruct
+    keep_alive: "10m"
+  openai_compat:
+    base_url: http://localhost:1234/v1
+    api_key: not-needed
+    model: qwen2.5-coder-7b-instruct
+
+safety:
+  permission_level: normal       # safe | normal | full
+  require_confirmation: true
+  denied_commands:
+    - "rm -rf /"
+    - "rm -rf /*"
+    - "rm -rf ~"
+    - "rm -rf ~/*"
+    - ":(){:|:&};:"
+    - "format c:"
+    - "format /"
+    - "del /f /s /q c:\\"
+    - "rd /s /q c:\\"
+    - "shutdown"
+    - "reboot"
+    - "mkfs"
+    - "dd if=/dev/zero"
+  denied_patterns:
+    - "rm\\s+-rf\\s+[/\\\\]"
+    - "rm\\s+-rf\\s+~"
+    - "mkfs\\."
+    - "dd\\s+if=.*of=/dev/sd"
+    - ">\\s*/dev/sd[a-z]"
+    - "chmod\\s+-R\\s+777\\s+/"
+    - "format\\s+[a-z]:"
+    - "Remove-Item\\s+-Recurse\\s+-Force\\s+[A-Z]:\\\\"
+
+memory:
+  db_path: ./data/agent.db
+  conversation_window: 40
+  project_index_enabled: true
+  summarise_after_messages: 60
+  keep_recent: 12
+
+# Per-capability model overrides. Leave null to use the active model.
+# Useful when your main model can't see images/hear audio but you have a
+# multimodal one installed alongside it.
+multimodal:
+  # Same-provider override: model id valid for the active router.
+  #   ollama:        gemma4 / llava:13b / qwen2.5vl:7b
+  #   openrouter:    openai/gpt-4o-mini / anthropic/claude-haiku-4.5 / google/gemini-2.5-flash-lite
+  # null = use active agent model (only works if it has vision).
+  vision_model: openai/gpt-4o-mini
+  audio_model: null
+
+  # Hybrid override: route vision/audio through a separate provider entirely.
+  # Useful for "agent on OpenRouter (smart text) + Gemma 4 locally (free vision)".
+  # When set, vision_model above must be valid for THIS provider, not the agent's.
+  # vision_provider: ollama
+  # vision_base_url: http://localhost:11434
+  # vision_api_key: not-needed
+  # audio_provider: ollama
+  # audio_base_url: http://localhost:11434
+
+ui:
+  name: "ai agent"             # Shown as ASCII art at chat startup.
+  tagline: "local-first autonomous coding agent"
+  banner: true
+  banner_font: ansi_shadow     # any pyfiglet font; try slant, big, doom, larry3d
+  banner_color: cyan           # any rich color
+  spinner: true                # animated 'thinking' while the model generates
+
+api:
+  host: 127.0.0.1
+  port: 8765
+
+logging:
+  level: INFO
+  dir: ./logs
+  json: true

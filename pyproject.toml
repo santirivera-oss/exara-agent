@@ -1,0 +1,115 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "exara-agent"
+version = "0.1.0"
+description = "Local-first autonomous AI agent for programming and system automation. Runs against local models (Ollama, vLLM, LM Studio) or any OpenAI-compatible API (OpenRouter, OpenAI, Anthropic-compatible) with native tool calling, MCP support, plan mode, and skills."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+  { name = "Santiago Rivera", email = "riveraproker@gmail.com" },
+]
+keywords = [
+  "ai", "agent", "llm", "autonomous", "cli", "ollama", "openrouter",
+  "openai", "anthropic", "mcp", "model-context-protocol", "tools",
+  "function-calling", "coding-agent", "local-first",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development",
+  "Topic :: Software Development :: Code Generators",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Utilities",
+]
+
+dependencies = [
+  "pydantic>=2.7",
+  "pydantic-settings>=2.3",
+  "httpx>=0.27",
+  "anyio>=4.4",
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "typer>=0.12",
+  "rich>=13.7",
+  "aiosqlite>=0.20",
+  "structlog>=24.1",
+  "pyyaml>=6.0",
+  "python-dotenv>=1.0",
+  "tenacity>=8.5",
+  "watchfiles>=0.22",
+  "mcp>=1.0",
+  "pyfiglet>=1.0",
+  "pymupdf>=1.24",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "pytest-cov>=5.0",
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "build>=1.2",
+  "twine>=5.1",
+]
+embeddings = [
+  "chromadb>=0.5",
+  "sentence-transformers>=3.0",
+]
+browser = [
+  "playwright>=1.40",
+]
+all = [
+  "chromadb>=0.5",
+  "sentence-transformers>=3.0",
+  "playwright>=1.40",
+]
+
+[project.urls]
+Homepage = "https://github.com/santirivera-oss/exara-agent"
+Repository = "https://github.com/santirivera-oss/exara-agent"
+Issues = "https://github.com/santirivera-oss/exara-agent/issues"
+Changelog = "https://github.com/santirivera-oss/exara-agent/blob/main/CHANGELOG.md"
+
+[project.scripts]
+exara = "ai_agent.cli:app"
+exara-agent = "ai_agent.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ai_agent"]
+# Bundled runtime data (skills, default config, example mcp.json) lives
+# inside ai_agent/, so hatch includes it automatically. No force-include needed.
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/ai_agent",
+  "/tests",
+  "/docs",
+  "/README.md",
+  "/LICENSE",
+  "/CHANGELOG.md",
+  "/pyproject.toml",
+  "/.env.example",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "SIM", "TCH"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
