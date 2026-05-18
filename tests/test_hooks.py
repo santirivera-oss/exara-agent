@@ -27,7 +27,7 @@ async def test_hook_failing_command_does_not_block_by_default():
 
 async def test_pre_tool_use_blocks_when_block_on_error():
     spec = HookSpec(
-        command=f'{sys.executable} -c "import sys; print(\\"nope\\", file=sys.stderr); sys.exit(2)"',
+        command=f"{sys.executable} -c \"import sys; print('nope', file=sys.stderr); sys.exit(2)\"",
         block_on_error=True, timeout=5,
     )
     results = await run_hooks([spec], {"tool": "x"}, tool_name="x", blocking=True)
