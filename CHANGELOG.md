@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.1.1] - Unreleased
+## [0.1.1] - 2026-05-18
 
 ### Added
 - `exara doctor --fix` to create safe missing local directories and a starter global MCP config.
