@@ -116,6 +116,12 @@ cd frontend && npm run dev   # http://localhost:3100
 /stats    /todos    /ps             /clear
 ```
 
+### Command reference
+
+Full bilingual command list:
+
+- [`docs/COMMANDS.md`](docs/COMMANDS.md) - every CLI command, MCP/profile/skills/memory command, and chat slash command in English and Spanish.
+
 ---
 
 ## Providers
@@ -181,6 +187,7 @@ workspace `config.yaml` → active profile → `AI_AGENT_*` env vars.
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — internals, ReAct loop, tool registry
 - [`docs/MCP.md`](docs/MCP.md) — how MCP integration works
+- [`docs/COMMANDS.md`](docs/COMMANDS.md) - bilingual CLI command reference
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — what's next
 - [`CHANGELOG.md`](CHANGELOG.md) — release notes
 
