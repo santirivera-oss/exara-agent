@@ -57,7 +57,7 @@ def load_merged_mcp_config(workspace_path: Path) -> dict[str, MCPServerConfig]:
     """Merge `~/.ai-agent/mcp.json` (user-wide) with `<workspace>/mcp.json`
     (project-specific). The workspace file wins on name collisions.
 
-    This is what lets `ai-agent chat` carry the same servers (github,
+    This is what lets `exara chat` carry the same servers (github,
     filesystem, etc.) into every folder: drop them in your home once.
     Project-specific servers stay in the repo.
     """
@@ -72,7 +72,7 @@ def load_merged_mcp_config(workspace_path: Path) -> dict[str, MCPServerConfig]:
 
 # --- Curated catalogue of common MCP servers --------------------------------
 # Each entry describes how to launch the server and what env vars (if any)
-# the user needs to provide. Used by `ai-agent mcp install <name>`.
+# the user needs to provide. Used by `exara mcp install <name>`.
 
 class CatalogEntry(BaseModel):
     command: str
@@ -158,10 +158,10 @@ CATALOG: dict[str, CatalogEntry] = {
     ),
     "mt5": CatalogEntry(
         command="python",
-        args=["mcp_servers/mt5_server.py"],
+        args=["examples/mcp_servers/mt5/mt5_server.py"],
         env_required=["MT5_LOGIN", "MT5_PASSWORD", "MT5_SERVER"],
         description="MetaTrader 5: account, symbols, history, positions, order placement (gated). Windows only.",
-        docs="mcp_servers/mt5_server.py — read the docstring at the top.",
+        docs="examples/mcp_servers/mt5/mt5_server.py - read the docstring at the top.",
     ),
 }
 

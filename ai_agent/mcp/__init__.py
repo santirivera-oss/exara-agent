@@ -7,7 +7,7 @@ a per-service wrapper.
 Configure with a `mcp.json` in the workspace root (or via `settings.mcp.config_path`).
 """
 from .client import MCPClient
-from .config import MCPServerConfig, load_mcp_config
+from .config import MCPServerConfig, load_mcp_config, load_merged_mcp_config
 from .manager import MCPManager, MCPToolMeta
 
 __all__ = [
@@ -16,4 +16,5 @@ __all__ = [
     "MCPServerConfig",
     "MCPToolMeta",
     "load_mcp_config",
+    "load_merged_mcp_config",
 ]

@@ -5,8 +5,8 @@ built-in skills with the same name.
 
 The built-in skills (`code-style`, `python`, `fastapi`, `web-frontend`,
 `design`, `programming`, `testing`, `security`, `nextjs`, `typescript-react`)
-now ship with the `ai-agent` package itself — they are available from any
-directory you run `ai-agent` in.
+now ship with the `exara-agent` package itself — they are available from any
+directory you run `exara` in.
 
 ## Loader precedence (highest wins)
 
@@ -19,8 +19,8 @@ Same `name:` in two locations → the higher-precedence one wins.
 ## Inspect
 
 ```bash
-ai-agent skills list           # what's active here and from where
-ai-agent skills show <name>    # full body
+exara skills list           # what's active here and from where
+exara skills show <name>    # full body
 ```
 
 ## Create a project-specific skill

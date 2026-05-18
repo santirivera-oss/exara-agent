@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "exara-agent"
-version = "0.1.0"
+version = "0.1.1"
 description = "Local-first autonomous AI agent for programming and system automation. Runs against local models (Ollama, vLLM, LM Studio) or any OpenAI-compatible API (OpenRouter, OpenAI, Anthropic-compatible) with native tool calling, MCP support, plan mode, and skills."
 readme = "README.md"
 requires-python = ">=3.12"

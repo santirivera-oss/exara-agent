@@ -24,8 +24,8 @@ The GitHub environment `pypi` already exists in this repository.
 After Trusted Publishing is configured and the `tests` workflow is green:
 
 ```powershell
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 The tag triggers `.github/workflows/publish.yml`, which builds the package and publishes it to PyPI.

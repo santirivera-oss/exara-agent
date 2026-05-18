@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.1] - Unreleased
+
+### Added
+- `exara doctor --fix` to create safe missing local directories and a starter global MCP config.
+- `exara memory list/set/search/forget` for managing project memory facts from the CLI.
+
+### Improved
+- MCP catalogue now shows launchers and recommends global installs for portable setup.
+- `exara mcp test` now sees merged global + workspace MCP configs.
+- `exara skills show` can display bundled and user-wide skills, not only workspace skills.
+
 ## [0.1.0] — 2026-05-16
 
 First public-ready snapshot. Functional MVP with **27 tools**, **93 tests**, web UI

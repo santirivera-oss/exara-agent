@@ -162,6 +162,55 @@ class MemoryStore:
             )
         return {k: v for (k, v) in rows}
 
+    async def list_facts(self, workspace: str | None = None) -> list[dict[str, Any]]:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            if workspace is None:
+                rows = await db.execute_fetchall(
+                    "SELECT workspace, key, value, updated_at FROM project_facts "
+                    "ORDER BY updated_at DESC"
+                )
+            else:
+                rows = await db.execute_fetchall(
+                    "SELECT workspace, key, value, updated_at FROM project_facts "
+                    "WHERE workspace=? ORDER BY key",
+                    (workspace,),
+                )
+        return [dict(r) for r in rows]
+
+    async def search_facts(
+        self,
+        query: str,
+        workspace: str | None = None,
+    ) -> list[dict[str, Any]]:
+        needle = f"%{query.lower()}%"
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            if workspace is None:
+                rows = await db.execute_fetchall(
+                    "SELECT workspace, key, value, updated_at FROM project_facts "
+                    "WHERE lower(workspace) LIKE ? OR lower(key) LIKE ? OR lower(value) LIKE ? "
+                    "ORDER BY updated_at DESC",
+                    (needle, needle, needle),
+                )
+            else:
+                rows = await db.execute_fetchall(
+                    "SELECT workspace, key, value, updated_at FROM project_facts "
+                    "WHERE workspace=? AND (lower(key) LIKE ? OR lower(value) LIKE ?) "
+                    "ORDER BY key",
+                    (workspace, needle, needle),
+                )
+        return [dict(r) for r in rows]
+
+    async def delete_fact(self, workspace: str, key: str) -> bool:
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                "DELETE FROM project_facts WHERE workspace=? AND key=?",
+                (workspace, key),
+            )
+            await db.commit()
+            return cursor.rowcount > 0
+
     # ---- todos --------------------------------------------------------------
 
     async def set_todos(self, session_id: str, items: list[dict[str, Any]]) -> None:

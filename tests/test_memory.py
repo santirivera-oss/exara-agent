@@ -40,3 +40,25 @@ async def test_project_facts(store):
     await store.set_fact("/ws", "stack", "next.js + tailwind")  # upsert
     facts = await store.get_facts("/ws")
     assert facts["stack"] == "next.js + tailwind"
+
+
+async def test_project_facts_list_search_delete(store):
+    await store.set_fact("/ws-a", "stack", "python fastapi")
+    await store.set_fact("/ws-a", "owner", "engel")
+    await store.set_fact("/ws-b", "stack", "nextjs")
+
+    rows = await store.list_facts("/ws-a")
+    assert [r["key"] for r in rows] == ["owner", "stack"]
+
+    all_rows = await store.list_facts()
+    assert {r["workspace"] for r in all_rows} == {"/ws-a", "/ws-b"}
+
+    matches = await store.search_facts("fastapi")
+    assert [(r["workspace"], r["key"]) for r in matches] == [("/ws-a", "stack")]
+
+    deleted = await store.delete_fact("/ws-a", "owner")
+    assert deleted is True
+    assert await store.delete_fact("/ws-a", "missing") is False
+
+    facts = await store.get_facts("/ws-a")
+    assert facts == {"stack": "python fastapi"}

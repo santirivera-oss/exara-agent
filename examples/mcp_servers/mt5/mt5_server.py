@@ -11,7 +11,7 @@ PREREQUISITES
 REGISTER IN mcp.json:
     "mt5": {
       "command": "python",
-      "args": ["mcp_servers/mt5_server.py"],
+      "args": ["examples/mcp_servers/mt5/mt5_server.py"],
       "env": {
         "MT5_LOGIN": "12345678",
         "MT5_PASSWORD": "secret",
@@ -19,7 +19,7 @@ REGISTER IN mcp.json:
       }
     }
 
-Then `ai-agent chat` will pick up tools like `mcp__mt5__account_info`,
+Then `exara chat` will pick up tools like `mcp__mt5__account_info`,
 `mcp__mt5__symbol_info`, `mcp__mt5__copy_rates`, `mcp__mt5__positions_get`.
 
 Place-order tool is **always disabled by default**. Set MT5_ALLOW_ORDERS=1 in

@@ -16,15 +16,15 @@ filesystem, Postgres, Brave Search, or any of the dozens of community servers.
 
 3. **Inspect**:
    ```powershell
-   ai-agent mcp list
+   exara mcp list
    ```
 
 4. **Verify a tool**:
    ```powershell
-   ai-agent mcp test filesystem list_directory --args '{"path":"."}'
+   exara mcp test filesystem list_directory --args '{"path":"."}'
    ```
 
-5. **Use it** — start a normal `ai-agent chat` and the model will see the MCP
+5. **Use it** — start a normal `exara chat` and the model will see the MCP
    tools listed under the `mcp__<server>__<tool>` prefix.
 
 ## File format
@@ -111,7 +111,7 @@ mcp:
 
 ## Caveats
 
-- Only stdio transport is supported in v0.1.0. HTTP / streamable-HTTP servers
+- Only stdio transport is supported for now. HTTP / streamable-HTTP servers
   will be added when needed.
 - `resources` and `prompts` MCP features are out of scope for v1 — only
   `tools` are exposed.

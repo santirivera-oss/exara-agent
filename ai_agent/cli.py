@@ -43,6 +43,9 @@ app.add_typer(profile_app, name="profile")
 skills_app = typer.Typer(no_args_is_help=True, help="Programming knowledge packs auto-loaded by stack.")
 app.add_typer(skills_app, name="skills")
 
+memory_app = typer.Typer(no_args_is_help=True, help="Project memory facts.")
+app.add_typer(memory_app, name="memory")
+
 
 def _bootstrap(workspace: str | None, permission: str | None, provider: str | None, model: str | None):
     settings = load_settings()
@@ -235,12 +238,12 @@ async def _handle_slash(line: str, agent: Agent, settings) -> tuple[bool, Agent]
                 console.print(f"[red]{e}[/red]")
                 return True, agent
             console.print(f"[green]●[/green] active profile: [cyan]{sub_arg}[/cyan]\n"
-                          "[dim]restart the chat to apply: type [yellow]exit[/yellow] then [yellow]ai-agent chat[/yellow][/dim]")
+                          "[dim]restart the chat to apply: type [yellow]exit[/yellow] then [yellow]exara chat[/yellow][/dim]")
             return True, agent
         # default: list
         f = _p.load()
         if not f.profiles:
-            console.print("[dim]no profiles. create one with[/dim] [cyan]ai-agent profile add[/cyan]")
+            console.print("[dim]no profiles. create one with[/dim] [cyan]exara profile add[/cyan]")
             return True, agent
         lines = []
         for name, p in f.profiles.items():
@@ -542,34 +545,102 @@ def models(
 
 
 @app.command()
-def doctor() -> None:
-    """Quick environment + connectivity check."""
+def doctor(
+    fix: bool = typer.Option(False, "--fix", help="Create safe missing local dirs/config files."),
+) -> None:
+    """Quick environment + connectivity check. Use --fix for safe local setup."""
     settings = _bootstrap(None, None, None, None)
-    console.print(Panel.fit(
-        f"workspace = {settings.workspace}\n"
-        f"db        = {settings.memory.db_path}\n"
-        f"provider  = {settings.model.provider}\n"
-        f"model     = {_active_model(settings)}\n"
-        f"perm      = {settings.safety.permission_level}",
-        title="config",
-    ))
 
     async def main() -> None:
+        import json as _json
+        import shutil
+
+        from . import profiles as _profiles
+        from .mcp.config import load_merged_mcp_config
+
+        checks: list[tuple[str, str, str]] = []
+
+        def row(name: str, ok: bool, detail: str) -> None:
+            status = "[green]ok[/green]" if ok else "[yellow]check[/yellow]"
+            checks.append((name, status, detail))
+
+        def ensure_dir(name: str, path: Path) -> None:
+            if path.is_dir():
+                row(name, True, str(path))
+                return
+            if fix:
+                path.mkdir(parents=True, exist_ok=True)
+                row(name, True, f"created {path}")
+                return
+            row(name, False, f"missing {path} (run exara doctor --fix)")
+
+        user_dir = Path.home() / ".ai-agent"
+        ensure_dir("user config dir", user_dir)
+        ensure_dir("user skills dir", user_dir / "skills")
+        ensure_dir("memory db dir", Path(settings.memory.db_path).parent)
+        ensure_dir("logs dir", Path(settings.logging.dir))
+
+        user_mcp = user_dir / "mcp.json"
+        if user_mcp.is_file():
+            row("global MCP config", True, str(user_mcp))
+        elif fix:
+            user_mcp.parent.mkdir(parents=True, exist_ok=True)
+            user_mcp.write_text(_json.dumps({"mcpServers": {}}, indent=2), encoding="utf-8")
+            row("global MCP config", True, f"created {user_mcp}")
+        else:
+            row("global MCP config", False, f"missing {user_mcp} (optional)")
+
+        profile_file = _profiles.default_path()
+        profiles_file = _profiles.load()
+        if profiles_file.active and profiles_file.active in profiles_file.profiles:
+            p = profiles_file.profiles[profiles_file.active]
+            row("active profile", True, f"{profiles_file.active} / {p.provider} / {p.model}")
+        elif profiles_file.profiles:
+            row("active profile", False, "profiles exist, but none active; run exara profile use <name>")
+        else:
+            row("active profile", False, f"none in {profile_file}; run exara init")
+
+        for launcher in ("npx", "uvx", "docker", "ollama"):
+            found = shutil.which(launcher)
+            row(f"launcher: {launcher}", found is not None, found or "not on PATH")
+
         router = build_router(settings.model)
         try:
-            ms = await router.provider.list_models()
-            ok = bool(ms)
-            console.print(f"provider reachable: {'[green]yes[/green]' if ok else '[red]no[/red]'}"
-                          f"  ({len(ms)} model(s))")
+            models = await router.provider.list_models()
+            row("provider", bool(models), f"{settings.model.provider}: {len(models)} model(s)")
         except Exception as e:
-            console.print(f"[red]provider check failed:[/red] {e}")
+            row("provider", False, f"{settings.model.provider}: {e}")
         finally:
             await router.aclose()
+
         store = MemoryStore(settings.memory.db_path)
         await store.init()
-        console.print("[green]memory store ok[/green]")
+        row("memory store", True, str(settings.memory.db_path))
+
         tools = build_default_registry()
-        console.print(f"[green]tools loaded[/green]: {len(tools.all())}")
+        row("built-in tools", True, f"{len(tools.all())} loaded")
+
+        mcp_path = Path(settings.mcp.config_path)
+        if not mcp_path.is_absolute():
+            mcp_path = settings.workspace / mcp_path
+        servers = load_merged_mcp_config(mcp_path)
+        row("mcp servers", True, f"{len(servers)} visible")
+
+        console.print(Panel.fit(
+            f"workspace = {settings.workspace}\n"
+            f"db        = {settings.memory.db_path}\n"
+            f"provider  = {settings.model.provider}\n"
+            f"model     = {_active_model(settings)}\n"
+            f"perm      = {settings.safety.permission_level}",
+            title="config",
+        ))
+        table = Table(title="doctor")
+        table.add_column("check", style="cyan")
+        table.add_column("status")
+        table.add_column("detail", style="dim")
+        for item in checks:
+            table.add_row(*item)
+        console.print(table)
 
     asyncio.run(main())
 
@@ -619,6 +690,134 @@ def serve(
 def _active_model(settings) -> str:
     return (settings.model.ollama.model if settings.model.provider == "ollama"
             else settings.model.openai_compat.model)
+
+
+def _memory_workspace(settings, workspace: str | None) -> str:
+    return str((Path(workspace).resolve() if workspace else settings.workspace.resolve()))
+
+
+def _shorten_cell(value: object, limit: int = 90) -> str:
+    text = str(value)
+    return text if len(text) <= limit else text[: limit - 3] + "..."
+
+
+def _format_timestamp(ts: float | int | str | None) -> str:
+    if ts is None:
+        return ""
+    import time as _time
+
+    try:
+        return _time.strftime("%Y-%m-%d %H:%M", _time.localtime(float(ts)))
+    except (TypeError, ValueError):
+        return str(ts)
+
+
+def _render_memory_rows(rows: list[dict], *, include_workspace: bool, title: str) -> None:
+    if not rows:
+        console.print("[dim]no memory facts found[/dim]")
+        return
+    table = Table(title=title)
+    if include_workspace:
+        table.add_column("workspace", style="dim")
+    table.add_column("key", style="cyan")
+    table.add_column("value")
+    table.add_column("updated", style="dim")
+    for r in rows:
+        cells = []
+        if include_workspace:
+            cells.append(_shorten_cell(r.get("workspace", ""), 46))
+        cells.extend([
+            _shorten_cell(r.get("key", ""), 36),
+            _shorten_cell(r.get("value", ""), 90),
+            _format_timestamp(r.get("updated_at")),
+        ])
+        table.add_row(*cells)
+    console.print(table)
+
+
+@memory_app.command("list")
+def memory_list(
+    all_: bool = typer.Option(False, "--all", help="Show memory facts from every workspace."),
+    workspace: str | None = typer.Option(None, "--workspace", "-w", help="Workspace path (default: current)."),
+) -> None:
+    """List project memory facts."""
+    settings = _bootstrap(workspace, None, None, None)
+    ws = None if all_ else _memory_workspace(settings, workspace)
+
+    async def main() -> None:
+        store = MemoryStore(settings.memory.db_path)
+        await store.init()
+        rows = await store.list_facts(ws)
+        _render_memory_rows(rows, include_workspace=all_, title="memory facts")
+
+    asyncio.run(main())
+
+
+@memory_app.command("set")
+def memory_set(
+    key: str = typer.Argument(..., help="Fact key."),
+    value: str = typer.Argument(..., help="Fact value."),
+    workspace: str | None = typer.Option(None, "--workspace", "-w", help="Workspace path (default: current)."),
+) -> None:
+    """Create or update a project memory fact."""
+    settings = _bootstrap(workspace, None, None, None)
+    ws = _memory_workspace(settings, workspace)
+
+    async def main() -> None:
+        store = MemoryStore(settings.memory.db_path)
+        await store.init()
+        await store.set_fact(ws, key, value)
+        console.print(f"[green]saved[/green] [cyan]{key}[/cyan] for [dim]{ws}[/dim]")
+
+    asyncio.run(main())
+
+
+@memory_app.command("search")
+def memory_search(
+    query: str = typer.Argument(..., help="Case-insensitive text to search."),
+    all_: bool = typer.Option(False, "--all", help="Search every workspace."),
+    workspace: str | None = typer.Option(None, "--workspace", "-w", help="Workspace path (default: current)."),
+) -> None:
+    """Search memory facts by workspace, key, or value."""
+    settings = _bootstrap(workspace, None, None, None)
+    ws = None if all_ else _memory_workspace(settings, workspace)
+
+    async def main() -> None:
+        store = MemoryStore(settings.memory.db_path)
+        await store.init()
+        rows = await store.search_facts(query, ws)
+        _render_memory_rows(rows, include_workspace=all_, title=f"memory search: {query}")
+
+    asyncio.run(main())
+
+
+@memory_app.command("forget")
+def memory_forget(
+    key: str = typer.Argument(..., help="Fact key to delete."),
+    workspace: str | None = typer.Option(None, "--workspace", "-w", help="Workspace path (default: current)."),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Delete without interactive confirmation."),
+) -> None:
+    """Delete one memory fact from a workspace."""
+    settings = _bootstrap(workspace, None, None, None)
+    ws = _memory_workspace(settings, workspace)
+    if not yes and not Confirm.ask(
+        f"Forget memory fact [cyan]{key}[/cyan] for [dim]{ws}[/dim]?",
+        default=False,
+        console=console,
+    ):
+        console.print("[dim]cancelled[/dim]")
+        return
+
+    async def main() -> None:
+        store = MemoryStore(settings.memory.db_path)
+        await store.init()
+        deleted = await store.delete_fact(ws, key)
+        if deleted:
+            console.print(f"[green]forgot[/green] [cyan]{key}[/cyan]")
+        else:
+            console.print(f"[yellow]not found:[/yellow] {key}")
+
+    asyncio.run(main())
 
 
 # --- MCP subcommands --------------------------------------------------------
@@ -686,13 +885,14 @@ def mcp_catalog() -> None:
     from .mcp.config import CATALOG
     t = Table(title="MCP catalogue")
     t.add_column("name", style="cyan")
+    t.add_column("launcher")
     t.add_column("requires")
     t.add_column("description", style="dim")
     for name, entry in CATALOG.items():
-        req = ", ".join(entry.env_required) if entry.env_required else "—"
-        t.add_row(name, req, entry.description)
+        req = ", ".join(entry.env_required) if entry.env_required else "-"
+        t.add_row(name, entry.command, req, entry.description)
     console.print(t)
-    console.print("\n[dim]Install with:[/dim]  [cyan]ai-agent mcp install <name>[/cyan]")
+    console.print("\n[dim]Install globally with:[/dim]  [cyan]exara mcp install <name> --global[/cyan]")
 
 
 @mcp_app.command("install")
@@ -717,7 +917,7 @@ def mcp_install(
 
     entry = CATALOG.get(name)
     if entry is None:
-        console.print(f"[red]unknown server:[/red] {name}. Run [cyan]ai-agent mcp catalog[/cyan].")
+        console.print(f"[red]unknown server:[/red] {name}. Run [cyan]exara mcp catalog[/cyan].")
         raise typer.Exit(2)
 
     # 1. Verify the launcher (npx / uvx / docker / etc.) is installed
@@ -735,7 +935,7 @@ def mcp_install(
             f"[red]The launcher [bold]{entry.command}[/bold] is not on your PATH.[/red]\n"
             f"This MCP server needs it to run.{hint}\n\n"
             f"[dim]You can still install it as disabled:[/dim]\n"
-            f"  [cyan]ai-agent mcp install {name} --disabled[/cyan]",
+            f"  [cyan]exara mcp install {name} --disabled[/cyan]",
             border_style="red", title="missing dependency",
         ))
         if not disabled:
@@ -777,7 +977,7 @@ def mcp_install(
     console.print(f"{status} [cyan]{name}[/cyan] -> {path}")
     if entry.docs:
         console.print(f"[dim]docs: {entry.docs}[/dim]")
-    console.print(f"\n[dim]Test it:[/dim]  [cyan]ai-agent mcp list[/cyan]")
+    console.print(f"\n[dim]Test it:[/dim]  [cyan]exara mcp list[/cyan]")
 
 
 @mcp_app.command("test")
@@ -789,14 +989,14 @@ def mcp_test(
     """Invoke a single MCP tool to verify the server works."""
     import json as _json
     from pathlib import Path
-    from .mcp.config import load_mcp_config
+    from .mcp.config import load_merged_mcp_config
     from .mcp.manager import MCPManager
 
     settings = _bootstrap(None, None, None, None)
     path = Path(settings.mcp.config_path)
     if not path.is_absolute():
         path = settings.workspace / path
-    servers = load_mcp_config(path)
+    servers = load_merged_mcp_config(path)
     if server not in servers:
         console.print(f"[red]Unknown server[/red] {server!r}. Configured: {list(servers)}")
         raise typer.Exit(2)
@@ -834,8 +1034,8 @@ def profile_list() -> None:
     if not f.profiles:
         console.print(Panel.fit(
             "No profiles yet.\n\n"
-            "Create one with:\n  [cyan]ai-agent profile add[/cyan]\n\n"
-            "Or pick from presets:\n  [cyan]ai-agent profile presets[/cyan]",
+            "Create one with:\n  [cyan]exara profile add[/cyan]\n\n"
+            "Or pick from presets:\n  [cyan]exara profile presets[/cyan]",
             border_style="yellow", title="profiles",
         ))
         return
@@ -863,7 +1063,7 @@ def profile_presets() -> None:
     for name, info in _p.PRESETS.items():
         t.add_row(name, info["provider"], info["model"], info["hint"])
     console.print(t)
-    console.print("\n[dim]Add one with:[/dim]  [cyan]ai-agent profile add --from <preset>[/cyan]")
+    console.print("\n[dim]Add one with:[/dim]  [cyan]exara profile add --from <preset>[/cyan]")
 
 
 @profile_app.command("add")
@@ -882,7 +1082,7 @@ def profile_add(
 
     if from_preset is not None:
         if from_preset not in _p.PRESETS:
-            console.print(f"[red]unknown preset[/red] {from_preset!r}. Run [cyan]ai-agent profile presets[/cyan].")
+            console.print(f"[red]unknown preset[/red] {from_preset!r}. Run [cyan]exara profile presets[/cyan].")
             raise typer.Exit(2)
         preset = _p.PRESETS[from_preset]
         provider = preset["provider"]
@@ -913,7 +1113,7 @@ def profile_add(
     icon = "[green]●[/green]" if use else " "
     console.print(f"{icon} saved profile [cyan]{name}[/cyan]  ([dim]{provider} / {model}[/dim])")
     if not use:
-        console.print(f"[dim]Activate with:[/dim]  [cyan]ai-agent profile use {name}[/cyan]")
+        console.print(f"[dim]Activate with:[/dim]  [cyan]exara profile use {name}[/cyan]")
 
 
 @profile_app.command("use")
@@ -1018,19 +1218,19 @@ def skills_list() -> None:
 @skills_app.command("show")
 def skills_show(name: str) -> None:
     """Print the body of a single skill."""
-    from .skills import load_skills
+    from .skills import load_all_skills
     settings = _bootstrap(None, None, None, None)
     skills_dir = Path(settings.skills.dir)
     if not skills_dir.is_absolute():
         skills_dir = settings.workspace / skills_dir
-    skills = load_skills(skills_dir)
+    skills = load_all_skills(skills_dir)
     match = next((s for s in skills if s.name == name), None)
     if match is None:
         console.print(f"[red]no such skill:[/red] {name}")
         raise typer.Exit(2)
     console.print(Panel.fit(
         f"[cyan]{match.name}[/cyan] — {match.description}\n"
-        f"[dim]source: {match.path}[/dim]\n\n{match.body}",
+        f"[dim]source: {match.path or 'bundled'}[/dim]\n\n{match.body}",
         title=f"skill · {name}", border_style="cyan",
     ))
 

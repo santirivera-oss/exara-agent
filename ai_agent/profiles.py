@@ -8,12 +8,12 @@ accidentally committed.
 Typical use:
 
     # one-time, interactive
-    ai-agent profile add openai
-    ai-agent profile use openai
+    exara profile add openai
+    exara profile use openai
 
     # later
-    ai-agent profile list
-    ai-agent profile use openrouter  # swap instantly, no .env edits
+    exara profile list
+    exara profile use openrouter  # swap instantly, no .env edits
 
 The active profile overlays the loaded settings — env vars and YAML still
 work as before, the profile just substitutes the model section.
@@ -122,7 +122,7 @@ def activate(name: str, *, path: Path | None = None) -> ProfileFile:
     return f
 
 
-# --- Built-in presets shown by `ai-agent profile presets` -------------------
+# --- Built-in presets shown by `exara profile presets` -------------------
 
 PRESETS: dict[str, dict[str, Any]] = {
     "openrouter": {
@@ -131,8 +131,8 @@ PRESETS: dict[str, dict[str, Any]] = {
         "model": "deepseek/deepseek-chat",
         "hint": "OpenRouter unified API (Claude, GPT, DeepSeek, free models). Key: https://openrouter.ai/keys",
         "extra_headers": {
-            "HTTP-Referer": "https://github.com/local/ai-agent",
-            "X-Title": "ai-agent",
+            "HTTP-Referer": "https://github.com/santirivera-oss/exara-agent",
+            "X-Title": "exara-agent",
         },
     },
     "openai": {

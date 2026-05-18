@@ -1,7 +1,7 @@
 # Custom MCP servers
 
 Local MCP servers you can spawn from your own machine. Drop a script here,
-register it in `mcp.json` (or via `ai-agent mcp install <name>` if it's in
+register it in `mcp.json` (or via `exara mcp install <name>` if it's in
 the catalogue), and the agent picks up its tools automatically.
 
 ## mt5_server.py — MetaTrader 5
@@ -18,7 +18,7 @@ same machine.
 Quick install:
 
 ```powershell
-ai-agent mcp install mt5
+exara mcp install mt5
 # you'll be asked for: MT5_LOGIN, MT5_PASSWORD, MT5_SERVER
 ```
 

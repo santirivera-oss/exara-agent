@@ -55,7 +55,7 @@ async def lifespan(_app: FastAPI):
         await router.aclose()
 
 
-app = FastAPI(title="ai-agent", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="exara-agent", version="0.1.1", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
